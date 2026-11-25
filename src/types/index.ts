@@ -12,6 +12,7 @@ export interface Event {
   title: string;
   speaker?: string;
   date: string; // Backend returns ISO-8601 string (e.g., "2025-02-15T18:00:00")
+  endDate?: string | null; // Same format as date; null for events without an end time
   link?: string;
   images?: string[];
   description: string;

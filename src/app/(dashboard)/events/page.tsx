@@ -175,8 +175,7 @@ export default function EventsPage() {
                     isoDate: evt.date,
                     date: evt.date ? formatDate(evt.date) : '',
                     startTime: evt.date ? formatTime(evt.date) : '',
-                    // If backend does not provide endTime yet natively, keep it blank or derived.
-                    endTime: '',
+                    endTime: evt.endDate ? formatTime(evt.endDate) : '',
                     timeStatus
                 };
             });
@@ -603,7 +602,7 @@ export default function EventsPage() {
                                                     <td className="h-[70px] px-[16px] py-[14px]">
                                                         <div className="flex flex-col gap-[4px]">
                                                             <span className="font-['Inter'] font-medium text-[14px] text-[#666d80]">
-                                                                {event.date} | {event.startTime}
+                                                                {event.date} | {event.startTime}{event.endTime ? ` – ${event.endTime}` : ''}
                                                             </span>
                                                             <span className={`font-['Inter'] font-normal text-[12px] ${event.timeStatus === 'Upcoming' ? 'text-[#47b881]' :
                                                                     event.timeStatus === 'Past' ? 'text-[#9ca3af]' : 'text-[#ffad0d]'
