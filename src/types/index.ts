@@ -26,6 +26,7 @@ export interface Event {
   
   // UI Specific helper fields (not always from backend)
   category?: string; 
+  isoDate?: string; // Raw backend date, kept when `date` is overwritten with a display string
   startTime?: string;
   endTime?: string;
   location?: string; // Legacy UI mapping

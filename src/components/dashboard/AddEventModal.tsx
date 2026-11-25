@@ -5,6 +5,7 @@ import ModalCloseButton from '@/components/ui/ModalCloseButton';
 import TimePicker from '@/components/ui/TimePicker';
 import type { Event } from '@/types';
 import { createEvent, updateEvent } from '@/lib/api/events';
+import { getLocalTodayDateString, toDateInputValue, toTimeInputValue } from '@/lib/date';
 
 interface AddEventModalProps {
     isOpen: boolean;
@@ -24,15 +25,6 @@ function parseTime12to24(t: string): string {
     if (p === 'PM' && h < 12) h += 12;
     if (p === 'AM' && h === 12) h = 0;
     return `${h.toString().padStart(2, '0')}:${m}`;
-}
-
-/* ── Helper: get today's date in YYYY-MM-DD local time ── */
-function getLocalTodayDateString(): string {
-    const d = new Date();
-    const year = d.getFullYear();
-    const month = String(d.getMonth() + 1).padStart(2, '0');
-    const day = String(d.getDate()).padStart(2, '0');
-    return `${year}-${month}-${day}`;
 }
 
 export default function AddEventModal({ isOpen, onClose, event, onDeleteRequest }: AddEventModalProps) {
@@ -64,18 +56,9 @@ export default function AddEventModal({ isOpen, onClose, event, onDeleteRequest 
                 setSpeaker(event.speaker || '');
                 setVenue(event.venue || event.location || 'Masjid Abu Bakar');
                 setDescription(event.description || '');
-                // Parse date: ISO String → "YYYY-MM-DD"
-                try {
-                    const d = new Date(event.date || event.createdAt || Date.now());
-                    if (!isNaN(d.getTime())) {
-                        setEventDate(d.toISOString().split('T')[0]);
-                    } else {
-                        setEventDate('');
-                    }
-                } catch {
-                    setEventDate('');
-                }
-                setStartTime(parseTime12to24(event.startTime || ''));
+                // Parse date → "YYYY-MM-DD" without UTC conversion (see lib/date.ts)
+                setEventDate(toDateInputValue(event.isoDate || event.date || event.createdAt));
+                setStartTime(toTimeInputValue(event.isoDate) || parseTime12to24(event.startTime || ''));
                 setEndTime(parseTime12to24(event.endTime || '')); // currently unused by backend
                 setLink(event.link || '');
 
