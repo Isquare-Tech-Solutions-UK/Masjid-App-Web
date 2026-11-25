@@ -85,7 +85,9 @@ export default function DashboardPage() {
           startTime: evt.date
             ? new Date(evt.date).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true })
             : '',
-          endTime: '',
+          endTime: evt.endDate
+            ? new Date(evt.endDate).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true })
+            : '',
         }));
         setUpcomingEvents(processed);
       })

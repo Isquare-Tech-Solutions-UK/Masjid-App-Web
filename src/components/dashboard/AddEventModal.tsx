@@ -60,7 +60,7 @@ export default function AddEventModal({ isOpen, onClose, event, onDeleteRequest 
                 // Parse date → "YYYY-MM-DD" without UTC conversion (see lib/date.ts)
                 setEventDate(toDateInputValue(event.isoDate || event.date || event.createdAt));
                 setStartTime(toTimeInputValue(event.isoDate) || parseTime12to24(event.startTime || ''));
-                setEndTime(parseTime12to24(event.endTime || '')); // currently unused by backend
+                setEndTime(toTimeInputValue(event.endDate) || parseTime12to24(event.endTime || ''));
                 setLink(event.link || '');
 
                 setImageFile(null);
@@ -92,6 +92,16 @@ export default function AddEventModal({ isOpen, onClose, event, onDeleteRequest 
             return;
         }
 
+        // Times are zero-padded "HH:mm", so string comparison orders them correctly
+        if (endTime && !startTime) {
+            setError("Please set a start time before setting an end time.");
+            return;
+        }
+        if (endTime && endTime <= startTime) {
+            setError("End time must be after start time.");
+            return;
+        }
+
         setIsSaving(true);
         setError(null);
 
@@ -106,6 +116,8 @@ export default function AddEventModal({ isOpen, onClose, event, onDeleteRequest 
             // Required DTO fields
             formData.append('title', title);
             formData.append('date', isoDateTime);
+            // Always sent: an empty value clears a previously saved end time on edit
+            formData.append('endDate', endTime ? `${eventDate}T${endTime}:00` : '');
             formData.append('description', description);
 
             // The backend expects specific string enums (matching UI or backend statuses)
