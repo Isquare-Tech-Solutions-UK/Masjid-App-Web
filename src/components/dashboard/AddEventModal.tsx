@@ -5,8 +5,28 @@ import ModalCloseButton from '@/components/ui/ModalCloseButton';
 import TimePicker from '@/components/ui/TimePicker';
 import type { Event } from '@/types';
 import { createEvent, updateEvent } from '@/lib/api/events';
-import { messageOf, withRequestRef } from '@/lib/api/errors';
+import { ApiError } from '@/lib/api/client';
+import { withRequestRef } from '@/lib/api/errors';
 import { getLocalTodayDateString, toDateInputValue, toTimeInputValue } from '@/lib/date';
+
+/* Must match the backend limits (CreateEventRequest / UpdateEventRequest) */
+const MAX_LENGTH = {
+    title: 255,
+    speaker: 255,
+    venue: 255,
+    link: 500,
+    description: 5000,
+} as const;
+
+/* Turn a failed save into a message the admin can act on */
+function getSaveErrorMessage(err: unknown): string {
+    if (err instanceof ApiError) {
+        // 4xx messages from the API are written for users; show them as-is
+        if (err.status < 500) return err.message;
+        return withRequestRef('Something went wrong while saving the event. Please try again.', err);
+    }
+    return 'Could not reach the server. Please check your connection and try again.';
+}
 
 interface AddEventModalProps {
     isOpen: boolean;
@@ -86,6 +106,21 @@ export default function AddEventModal({ isOpen, onClose, event, onDeleteRequest 
             return;
         }
 
+        // maxLength stops typing past the limit, but an edited event may already be longer
+        const tooLong = (
+            [
+                ['Title', title, MAX_LENGTH.title],
+                ['Speaker', speaker, MAX_LENGTH.speaker],
+                ['Venue', venue, MAX_LENGTH.venue],
+                ['Registration link', link, MAX_LENGTH.link],
+                ['Description', description, MAX_LENGTH.description],
+            ] as const
+        ).find(([, value, max]) => value.length > max);
+        if (tooLong) {
+            setError(`${tooLong[0]} must be at most ${tooLong[2]} characters.`);
+            return;
+        }
+
         const todayStr = getLocalTodayDateString();
         if (eventDate < todayStr) {
             setError("Event date cannot be in the past.");
@@ -140,8 +175,8 @@ export default function AddEventModal({ isOpen, onClose, event, onDeleteRequest 
                 await createEvent(formData);
             }
             onClose(); // Parent will refresh data on close
-        } catch (err) {
-            setError(withRequestRef(messageOf(err, 'An error occurred while saving the event.'), err));
+        } catch (err: unknown) {
+            setError(getSaveErrorMessage(err));
             console.error('Failed to save event:', err);
         } finally {
             setIsSaving(false);
@@ -174,6 +209,7 @@ export default function AddEventModal({ isOpen, onClose, event, onDeleteRequest 
                         type="text"
                         value={title}
                         onChange={(e) => setTitle(e.target.value)}
+                        maxLength={MAX_LENGTH.title}
                         placeholder="Event Title"
                         className="form-field h-[48px]"
                     />
@@ -190,6 +226,7 @@ export default function AddEventModal({ isOpen, onClose, event, onDeleteRequest 
                             type="text"
                             value={speaker}
                             onChange={(e) => setSpeaker(e.target.value)}
+                            maxLength={MAX_LENGTH.speaker}
                             placeholder="Speaker"
                             className="form-field h-[48px]"
                         />
@@ -203,6 +240,7 @@ export default function AddEventModal({ isOpen, onClose, event, onDeleteRequest 
                             type="text"
                             value={venue}
                             onChange={(e) => setVenue(e.target.value)}
+                            maxLength={MAX_LENGTH.venue}
                             placeholder="Venue"
                             className="form-field h-[48px]"
                         />
@@ -217,9 +255,13 @@ export default function AddEventModal({ isOpen, onClose, event, onDeleteRequest 
                     <textarea
                         value={description}
                         onChange={(e) => setDescription(e.target.value)}
+                        maxLength={MAX_LENGTH.description}
                         placeholder="Description"
                         className="form-field h-[144px] resize-none"
                     />
+                    <span className="self-end font-inter text-[12px] text-[#666d80]">
+                        {description.length}/{MAX_LENGTH.description}
+                    </span>
                 </div>
 
                 {/* Date & Time */}
@@ -275,6 +317,7 @@ export default function AddEventModal({ isOpen, onClose, event, onDeleteRequest 
                             type="text"
                             value={link}
                             onChange={(e) => setLink(e.target.value)}
+                            maxLength={MAX_LENGTH.link}
                             placeholder="Registration Link (Optional)"
                             className="form-field h-[48px]"
                         />
