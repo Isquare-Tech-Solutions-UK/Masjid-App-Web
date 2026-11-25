@@ -14,13 +14,16 @@ export class ApiError extends Error {
     code: string;
     status: number;
     details?: Record<string, string>;
+    /** Same id as the backend logs and the X-Request-Id header, for tracing. */
+    requestId?: string;
 
-    constructor(status: number, code: string, message: string, details?: Record<string, string>) {
+    constructor(status: number, code: string, message: string, details?: Record<string, string>, requestId?: string) {
         super(message);
         this.name = 'ApiError';
         this.status = status;
         this.code = code;
         this.details = details;
+        this.requestId = requestId;
     }
 }
 
@@ -133,7 +136,8 @@ async function request<T>(
             response.status,
             errorBody?.error?.code || 'UNKNOWN_ERROR',
             errorBody?.error?.message || 'An unexpected error occurred',
-            errorBody?.error?.details
+            errorBody?.error?.details,
+            errorBody?.meta?.requestId || response.headers.get('X-Request-Id') || undefined
         );
     }
 
@@ -223,7 +227,8 @@ async function requestFormData<T>(
             response.status,
             errorBody?.error?.code || 'UNKNOWN_ERROR',
             errorBody?.error?.message || 'An unexpected error occurred',
-            errorBody?.error?.details
+            errorBody?.error?.details,
+            errorBody?.meta?.requestId || response.headers.get('X-Request-Id') || undefined
         );
     }
 
