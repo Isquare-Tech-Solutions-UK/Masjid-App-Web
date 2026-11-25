@@ -5,12 +5,14 @@ import Modal from '@/components/ui/Modal';
 import ModalCloseButton from '@/components/ui/ModalCloseButton';
 import TimePicker from '@/components/ui/TimePicker';
 import type { Announcement } from '@/types';
+import { getLocalTodayDateString, toDateInputValue } from '@/lib/date';
 import {
     createAnnouncement,
     updateAnnouncement,
     changeAnnouncementStatus,
     type CreateAnnouncementData,
 } from '@/lib/api/announcements';
+import { messageOf, withRequestRef } from '@/lib/api/errors';
 
 interface AddAnnouncementModalProps {
     isOpen: boolean;
@@ -34,15 +36,6 @@ interface AddAnnouncementModalProps {
      * The parent is responsible for showing a delete confirmation.
      */
     onDeleteRequest?: () => void;
-}
-
-/* ── Helper: get today's date in YYYY-MM-DD local time ── */
-function getLocalTodayDateString(): string {
-    const d = new Date();
-    const year = d.getFullYear();
-    const month = String(d.getMonth() + 1).padStart(2, '0');
-    const day = String(d.getDate()).padStart(2, '0');
-    return `${year}-${month}-${day}`;
 }
 
 /* ── Helper: parse "10:30 AM" → "10:30" (24h) ── */
@@ -80,12 +73,7 @@ export default function AddAnnouncementModal({ isOpen, onClose, announcement, on
                 setMessage(announcement.message || announcement.description || '');
                 if (announcement.scheduledAt || announcement.status === 'scheduled') {
                     setScheduleMode(true);
-                    try {
-                        const d = new Date(announcement.scheduledAt || announcement.date || Date.now());
-                        setScheduleDate(!isNaN(d.getTime()) ? d.toISOString().split('T')[0] : '');
-                    } catch {
-                        setScheduleDate('');
-                    }
+                    setScheduleDate(toDateInputValue(announcement.scheduledAt || announcement.date));
                     setScheduleTime(parseTime12to24(announcement.time || ''));
                 } else {
                     setScheduleMode(false);
@@ -165,8 +153,8 @@ export default function AddAnnouncementModal({ isOpen, onClose, announcement, on
             try {
                 await performUpdate();
                 onClose();
-            } catch (err: any) {
-                setError(err?.message || 'An error occurred while saving the announcement.');
+            } catch (err) {
+                setError(withRequestRef(messageOf(err, 'An error occurred while saving the announcement.'), err));
                 console.error('Failed to save announcement:', err);
             } finally {
                 setIsSaving(false);
@@ -203,8 +191,8 @@ export default function AddAnnouncementModal({ isOpen, onClose, announcement, on
             };
             await createAnnouncement(data);
             onClose();
-        } catch (err: any) {
-            setError(err?.message || 'An error occurred while saving the announcement.');
+        } catch (err) {
+            setError(withRequestRef(messageOf(err, 'An error occurred while saving the announcement.'), err));
             console.error('Failed to save announcement:', err);
         } finally {
             setIsSaving(false);

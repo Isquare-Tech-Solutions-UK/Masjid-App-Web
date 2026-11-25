@@ -12,6 +12,7 @@ export interface Event {
   title: string;
   speaker?: string;
   date: string; // Backend returns ISO-8601 string (e.g., "2025-02-15T18:00:00")
+  endDate?: string | null; // Same format as date; null for events without an end time
   link?: string;
   images?: string[];
   description: string;
@@ -26,6 +27,7 @@ export interface Event {
   
   // UI Specific helper fields (not always from backend)
   category?: string; 
+  isoDate?: string; // Raw backend date, kept when `date` is overwritten with a display string
   startTime?: string;
   endTime?: string;
   location?: string; // Legacy UI mapping
