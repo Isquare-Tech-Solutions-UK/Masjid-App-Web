@@ -172,6 +172,7 @@ export default function EventsPage() {
                 return {
                     ...evt,
                     // Assign UI helper fields derived from backend ISO date representations
+                    isoDate: evt.date,
                     date: evt.date ? formatDate(evt.date) : '',
                     startTime: evt.date ? formatTime(evt.date) : '',
                     // If backend does not provide endTime yet natively, keep it blank or derived.
