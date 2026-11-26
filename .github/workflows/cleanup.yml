@@ -13,6 +13,16 @@ jobs:
   cleanup:
     runs-on: ubuntu-latest
     steps:
+      # Each new :dev push leaves the previous dev build untagged. Remove those
+      # first so they never push release versions out of the window below.
+      - name: Delete old untagged dev builds
+        uses: actions/delete-package-versions@v5
+        with:
+          package-name: masjidguide-frontend
+          package-type: container
+          delete-only-untagged-versions: "true"
+          min-versions-to-keep: 0
+
       - name: Delete old image versions
         uses: actions/delete-package-versions@v5
         with:

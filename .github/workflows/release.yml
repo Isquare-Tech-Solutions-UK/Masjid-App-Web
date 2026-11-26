@@ -14,6 +14,9 @@ permissions:
   contents: write
   packages: write
 
+# One release at a time. With a fixed group and cancel-in-progress: false,
+# GitHub keeps only ONE waiting run: starting a third release while one runs
+# and one waits cancels the waiting one.
 concurrency:
   group: release
   cancel-in-progress: false
