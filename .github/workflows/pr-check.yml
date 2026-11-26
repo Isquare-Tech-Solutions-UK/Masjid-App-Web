@@ -1,4 +1,4 @@
-name: PR Check
+name: PR check
 
 on:
   pull_request:
@@ -14,14 +14,16 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-      - uses: actions/setup-node@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: npm
 
-      - name: Install
+      - name: Install dependencies
         run: npm ci
 
       # Warnings are allowed; any lint error fails the check.
@@ -32,3 +34,33 @@ jobs:
         run: npm run build
         env:
           NEXT_TELEMETRY_DISABLED: 1
+
+  image:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: false
+          load: true
+          provenance: false
+          tags: masjidguide-frontend:pr-check
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      # WORKDIR is /app, where the standalone server.js lives.
+      - name: Check image contents
+        run: |
+          docker run --rm --entrypoint sh masjidguide-frontend:pr-check -c '
+            set -e
+            node --version
+            test -f server.js && echo "server.js present"
+            test "$(id -un)" = node && echo "runs as node"
+          '
