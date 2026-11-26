@@ -1,0 +1,11 @@
+node_modules
+.next
+.git
+.env*
+
+# Local/editor clutter
+.github
+.idea
+.DS_Store
+*.md
+docker-compose*.yml
