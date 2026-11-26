@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Modal from '@/components/ui/Modal';
 import { UploadIcon } from '@/components/ui/Icons';
 import ModalCloseButton from '@/components/ui/ModalCloseButton';
@@ -67,6 +67,23 @@ export default function AddEventModal({ isOpen, onClose, event, onDeleteRequest 
 
     const [isSaving, setIsSaving] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    // Bumped on every error shown, so the box scrolls into view even when the
+    // message is identical to the previous one (same string = no state change).
+    const [errorShownCount, setErrorShownCount] = useState(0);
+    const errorRef = useRef<HTMLDivElement>(null);
+
+    const showError = (message: string) => {
+        setError(message);
+        setErrorShownCount((n) => n + 1);
+    };
+
+    // The error box sits at the top of a tall, scrollable modal while the save
+    // buttons are at the bottom, so bring it into view or the failure goes unseen.
+    useEffect(() => {
+        if (errorShownCount > 0) {
+            errorRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+    }, [errorShownCount]);
 
     // Reset or Populate form when modal opens/event changes
     useEffect(() => {
@@ -102,7 +119,7 @@ export default function AddEventModal({ isOpen, onClose, event, onDeleteRequest 
 
     const handleSave = async (asDraft?: boolean) => {
         if (!title || !eventDate || !description || !speaker || !venue) {
-            setError("Title, Speaker, Venue, Date, and Description are required fields.");
+            showError("Title, Speaker, Venue, Date, and Description are required fields.");
             return;
         }
 
@@ -117,23 +134,23 @@ export default function AddEventModal({ isOpen, onClose, event, onDeleteRequest 
             ] as const
         ).find(([, value, max]) => value.length > max);
         if (tooLong) {
-            setError(`${tooLong[0]} must be at most ${tooLong[2]} characters.`);
+            showError(`${tooLong[0]} must be at most ${tooLong[2]} characters.`);
             return;
         }
 
         const todayStr = getLocalTodayDateString();
         if (eventDate < todayStr) {
-            setError("Event date cannot be in the past.");
+            showError("Event date cannot be in the past.");
             return;
         }
 
         // Times are zero-padded "HH:mm", so string comparison orders them correctly
         if (endTime && !startTime) {
-            setError("Please set a start time before setting an end time.");
+            showError("Please set a start time before setting an end time.");
             return;
         }
         if (endTime && endTime <= startTime) {
-            setError("End time must be after start time.");
+            showError("End time must be after start time.");
             return;
         }
 
@@ -176,7 +193,7 @@ export default function AddEventModal({ isOpen, onClose, event, onDeleteRequest 
             }
             onClose(); // Parent will refresh data on close
         } catch (err: unknown) {
-            setError(getSaveErrorMessage(err));
+            showError(getSaveErrorMessage(err));
             console.error('Failed to save event:', err);
         } finally {
             setIsSaving(false);
@@ -195,7 +212,7 @@ export default function AddEventModal({ isOpen, onClose, event, onDeleteRequest 
                 </div>
 
                 {error && (
-                    <div className="bg-red-50 text-red-600 p-3 rounded-[12px] text-sm">
+                    <div ref={errorRef} role="alert" className="bg-red-50 text-red-600 p-3 rounded-[12px] text-sm">
                         {error}
                     </div>
                 )}
