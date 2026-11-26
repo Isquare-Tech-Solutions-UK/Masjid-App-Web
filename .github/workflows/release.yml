@@ -1,0 +1,98 @@
+name: Release
+
+# Builds the one versioned image that every masjid and dev run unchanged.
+# Run from the Actions tab, on dev or main, at the commit to release.
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version to release, e.g. 1.4.0 (no leading v)"
+        required: true
+        type: string
+
+permissions:
+  contents: write
+  packages: write
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+env:
+  IMAGE: ghcr.io/isquare-tech-solutions-uk/masjidguide-frontend
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    env:
+      # Passed through env, never interpolated into a run: script.
+      VERSION: ${{ inputs.version }}
+      TAG: frontend-v${{ inputs.version }}
+    steps:
+      - name: Allow releases only from dev or main
+        run: |
+          case "$GITHUB_REF" in
+            refs/heads/dev|refs/heads/main) ;;
+            *) echo "::error::Releases run only from dev or main, not $GITHUB_REF"; exit 1 ;;
+          esac
+
+      - name: Validate version
+        run: |
+          if ! [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::Version must look like 1.2.3, got '$VERSION'"
+            exit 1
+          fi
+
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Refuse an existing tag
+        run: |
+          if git ls-remote --exit-code --tags origin "refs/tags/$TAG" >/dev/null; then
+            echo "::error::Tag $TAG already exists; pick a new version"
+            exit 1
+          fi
+
+      # Tag first, so a published image always has a matching tag in git.
+      - name: Create and push tag
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git tag -a "$TAG" -m "Frontend release $VERSION" "$GITHUB_SHA"
+          git push origin "refs/tags/$TAG"
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./Dockerfile
+          push: true
+          provenance: false
+          tags: ${{ env.IMAGE }}:${{ env.VERSION }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          # Links the package to this repo, so GITHUB_TOKEN can push to and
+          # clean up the package.
+          labels: |
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+            org.opencontainers.image.version=${{ env.VERSION }}
+            org.opencontainers.image.revision=${{ github.sha }}
+
+      - name: Summary
+        run: |
+          {
+            echo "### Released frontend $VERSION"
+            echo ""
+            echo "- Tag: \`$TAG\` at \`$GITHUB_SHA\`"
+            echo "- Image: \`$IMAGE:$VERSION\`"
+          } >> "$GITHUB_STEP_SUMMARY"
