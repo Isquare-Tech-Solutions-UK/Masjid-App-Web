@@ -1,6 +1,6 @@
 # Release image: one build serves every masjid and environment.
 # Nothing per-masjid or per-environment is passed in at build time; the only
-# runtime setting is BACKEND_API_URL (see src/middleware.ts).
+# runtime setting is BACKEND_API_URL (see src/proxy.ts).
 
 # ---- build ----
 FROM node:20-alpine AS build

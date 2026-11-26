@@ -19,14 +19,14 @@ const PROTECTED_PATHS = [
 const AUTH_PATHS = ['/login'];
 
 /**
- * Middleware for route protection
+ * Proxy (formerly middleware): route protection and the /api/v1 proxy
  *
  * Uses the presence of the refresh token cookie (set by the backend)
  * as a heuristic for whether the user has a valid session.
  * The actual token validation happens server-side when the frontend
  * calls the refresh endpoint.
  */
-export function middleware(request: NextRequest) {
+export function proxy(request: NextRequest) {
     const { pathname, search } = request.nextUrl;
 
     // Same-origin API calls. In production nginx sends /api/* straight to the
@@ -59,7 +59,7 @@ export function middleware(request: NextRequest) {
     // Redirect authenticated users away from login page
     if (isAuthPath && hasRefreshToken) {
         // If the client explicitly requested to clear the session (e.g. expired token), 
-        // we can forcibly delete the cookie in the middleware response.
+        // we can forcibly delete the cookie in the proxy response.
         if (request.nextUrl.searchParams.has('clear')) {
             const response = NextResponse.next();
             response.cookies.delete('refreshToken');

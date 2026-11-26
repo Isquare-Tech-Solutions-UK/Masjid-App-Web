@@ -6,7 +6,7 @@ const nextConfig: NextConfig = {
 
   // No rewrites here: next.config is evaluated at build time and its rewrite
   // destinations are frozen into the build. The /api/v1 proxy lives in
-  // src/middleware.ts so BACKEND_API_URL is read at request time instead.
+  // src/proxy.ts so BACKEND_API_URL is read at request time instead.
 };
 
 export default nextConfig;
