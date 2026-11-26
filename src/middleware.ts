@@ -27,7 +27,17 @@ const AUTH_PATHS = ['/login'];
  * calls the refresh endpoint.
  */
 export function middleware(request: NextRequest) {
-    const { pathname } = request.nextUrl;
+    const { pathname, search } = request.nextUrl;
+
+    // Same-origin API calls. In production nginx sends /api/* straight to the
+    // masjid's backend, so these only reach Next.js locally or when the
+    // container is hit directly. BACKEND_API_URL is read per request (not at
+    // build time), has no /api suffix, and the path is forwarded unchanged.
+    if (pathname.startsWith('/api/v1/')) {
+        const backendUrl = (process.env.BACKEND_API_URL || 'http://localhost:8080').replace(/\/+$/, '');
+        return NextResponse.rewrite(new URL(`${backendUrl}${pathname}${search}`));
+    }
+
     const hasRefreshToken = request.cookies.has('refreshToken');
 
     // Check if the path matches a protected route

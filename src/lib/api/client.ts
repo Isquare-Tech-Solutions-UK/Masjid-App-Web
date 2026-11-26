@@ -4,8 +4,11 @@ import type { ApiResponse, ApiErrorResponse } from '@/types/api';
 // API Client — fetch-based, no extra deps
 // ============================================
 
-const API_BASE_URL =
-    process.env.NEXT_PUBLIC_API_URL || '/api/v1';
+// Always same-origin. In production nginx routes /api/* on each masjid's
+// hostname to that masjid's backend; locally, middleware.ts proxies it to
+// BACKEND_API_URL. Never make this a NEXT_PUBLIC_* value: those are inlined at
+// build time, and one image has to serve every masjid.
+const API_BASE_URL = '/api/v1';
 
 /**
  * Correlation id header. The backend reads this into its logging MDC, so every

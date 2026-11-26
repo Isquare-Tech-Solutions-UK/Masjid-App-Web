@@ -1,15 +1,12 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  async rewrites() {
-    const backendUrl = process.env.BACKEND_API_URL || 'http://localhost:8080';
-    return [
-      {
-        source: '/api/v1/:path*',
-        destination: `${backendUrl}/api/v1/:path*`,
-      },
-    ];
-  },
+  // Self-contained server (.next/standalone/server.js) for the Docker image.
+  output: "standalone",
+
+  // No rewrites here: next.config is evaluated at build time and its rewrite
+  // destinations are frozen into the build. The /api/v1 proxy lives in
+  // src/middleware.ts so BACKEND_API_URL is read at request time instead.
 };
 
 export default nextConfig;
