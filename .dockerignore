@@ -9,7 +9,3 @@ node_modules
 .DS_Store
 *.md
 docker-compose*.yml
-
-# Manual Stripe test harness with a default dev member API key; keep it out of
-# the release image so it is never served on a masjid's hostname.
-public/donate-test.html
